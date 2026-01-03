@@ -91,6 +91,13 @@
 </style>
 </head>
 <body>
+  <script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js");
+  });
+}
+  </script>
 <div class="wrap">
   <h1>🎡 Roleta científica</h1>
   <p class="sub">A roleta gira as <b>tarefas</b> (ninguém sabe quais são). Você digita seu nome e recebe sua missão + bênção acadêmica. Som com suspense + fogos.</p>
