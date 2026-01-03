@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Roleta de Tarefas Insanas 🎡🧪</title>
+<style>
+  :root{
+    --bg1:#0b1020; --bg2:#05060a; --card:rgba(255,255,255,.08);
+    --txt:#f3f6ff; --mut:#aab3c5; --btn:#00d1b2; --btn2:#6aa9ff; --danger:#ff6b6b;
+  }
+  body{
+    margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    color:var(--txt);
+    background: radial-gradient(1200px 700px at 20% 10%, #22345d 0%, var(--bg1) 45%, var(--bg2) 100%);
+  }
+  .wrap{max-width:1050px; margin:0 auto; padding:18px 14px 30px;}
+  h1{margin:6px 0 2px; font-size:22px}
+  .sub{color:var(--mut); margin:0 0 14px; font-size:13px}
+  .grid{display:grid; grid-template-columns: 1.1fr .9fr; gap:14px}
+  @media (max-width: 920px){ .grid{grid-template-columns:1fr; } }
+  .card{
+    background:var(--card); border:1px solid rgba(255,255,255,.10);
+    border-radius:16px; padding:14px;
+    backdrop-filter: blur(6px);
+  }
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  button{
+    border:0; border-radius:12px; padding:12px 14px; font-weight:950;
+    cursor:pointer; transition:transform .05s ease;
+  }
+  button:active{transform:scale(.98)}
+  .btn{background:var(--btn); color:#00120e}
+  .btn2{background:var(--btn2); color:#06101f}
+  .btnDanger{background:var(--danger); color:#1a0000}
+  .small{padding:9px 12px; font-weight:900}
+  .pill{
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.12);
+    padding:8px 10px; border-radius:999px; color:var(--mut); font-size:13px
+  }
+  input[type="text"]{
+    width:100%; border-radius:14px;
+    border:1px solid rgba(255,255,255,.14);
+    background:rgba(0,0,0,.25); color:var(--txt); padding:12px 12px;
+    outline:none; font-size:16px;
+  }
+  canvas{display:block; width:100%; height:auto; border-radius:16px;}
+  .stage{position:relative}
+  #fx{
+    position:absolute; inset:0; pointer-events:none;
+    width:100%; height:100%;
+  }
+  .pointer{
+    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    width:0; height:0;
+    border-left:14px solid transparent;
+    border-right:14px solid transparent;
+    border-top:24px solid rgba(255,255,255,.95);
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,.5));
+  }
+  .result{
+    padding:14px; border-radius:16px;
+    background:rgba(0,0,0,.25); border:1px solid rgba(255,255,255,.12);
+    margin-top:10px;
+  }
+  .name{font-size:26px; font-weight:950}
+  .task{font-size:16px; margin-top:8px; line-height:1.25}
+  .hint{color:var(--mut); font-size:12px; margin-top:8px}
+  .copyBox{
+    margin-top:10px;
+    padding:10px 12px;
+    border-radius:14px;
+    border:1px dashed rgba(255,255,255,.22);
+    background:rgba(0,0,0,.18);
+    text-align:left;
+    white-space:pre-wrap;
+    font-size:13px;
+    color:rgba(255,255,255,.92);
+  }
+  .bigWord{
+    font-size:18px; font-weight:950;
+    margin-top:10px;
+    color:rgba(255,255,255,.95);
+  }
+  .footerNote{font-size:11px; color:var(--mut); margin-top:10px}
+  .toggle{display:flex; gap:8px; align-items:center; user-select:none}
+  input[type="checkbox"]{transform:scale(1.1)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎡 Roleta científica</h1>
+  <p class="sub">A roleta gira as <b>tarefas</b> (ninguém sabe quais são). Você digita seu nome e recebe sua missão + bênção acadêmica. Som com suspense + fogos.</p>
+
+  <div class="grid">
+    <!-- LEFT -->
+    <div class="card stage">
+      <div class="pointer" aria-hidden="true"></div>
+      <canvas id="wheel" width="900" height="900"></canvas>
+      <canvas id="fx" width="900" height="900"></canvas>
+
+      <div class="row" style="margin-top:12px; justify-content:space-between">
+        <div class="row">
+          <button class="btn" id="spinBtn">GIRAR 🎰</button>
+          <button class="btn2 small" id="spinInsaneBtn">GIRAR MUITO 😈</button>
+          <button class="btnDanger small" id="stopBtn" title="acelera o final do suspense">ENCURTAR SUSPENSE</button>
+        </div>
+        <div class="row">
+          <span class="pill" id="statusPill">🔇 som: desligado</span>
+          <label class="pill toggle" title="Alguns navegadores exigem clique para liberar som">
+            <input type="checkbox" id="soundToggle"/>
+            <span>Ativar som</span>
+          </label>
+          <label class="pill toggle">
+            <input type="checkbox" id="fireToggle" checked/>
+            <span>Fogos</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="result">
+        <div class="name" id="outName">👤 Nome: —</div>
+        <div class="task" id="outTask">🎯 Missão: gire a roleta pra descobrir sua sentença… digo, tarefa.</div>
+        <div class="hint" id="outHint">Dica: “GIRAR MUITO” cria mais suspense e mais giro.</div>
+
+        <div class="row" style="margin-top:10px">
+          <button class="btn2 small" id="copyBtn">COPIAR RESULTADO 📋</button>
+          <span class="pill" id="copyStatus">pronto</span>
+        </div>
+        <div class="copyBox" id="copyBox">—</div>
+      </div>
+
+      <div class="footerNote">
+        Se o som não tocar: marque “Ativar som” e toque uma vez na tela.
+      </div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="card">
+      <div class="pill">✍️ Digite seu nome</div>
+      <div class="label">Primeiro nome (só pra aparecer no resultado)</div>
+      <input id="nameInput" type="text" placeholder="Ex: Ernandes" />
+      <div class="bigWord" id="suspenseWord">🕯️ Aguardando a vítima…</div>
+
+      <div class="footerNote">
+        Idealizado por Ernandes Sobreira
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------------------
+   TAREFAS FIXAS (28+) — não editáveis
+--------------------------- */
+const tasks = [
+  "Escrever 2 resumos em 2 dias (sem chorar no método).",
+  "Escrever 2 artigos em 5 anos (e chamar isso de ‘planejamento estratégico’).",
+  "Fazer um texto que o Revisor 2 NÃO odeie (milagre estatístico).",
+  "Defender a hipótese com 100% de confiança e 0% de evidência.",
+  "Explicar o artigo sem falar: ‘significativo’, ‘robusto’ ou ‘complexo’.",
+  "Revisar um texto sem usar ‘ajustar a redação’ como solução universal.",
+  "Fazer o gráfico bonito: sem eixo torto, sem legenda em cima, sem humilhação.",
+  "Rodar a análise e NÃO mudar a hipótese depois (desafio lendário).",
+  "Fazer Discussão sem inventar causalidade do nada.",
+  "Criar um título que não pareça senha de Wi-Fi.",
+  "Mandar o artigo e NÃO atualizar o e-mail a cada 2 minutos.",
+  "Fazer o orientador dizer: ‘ok, isso tá bom’ (evento raro).",
+  "PowerPoint sem 78 bullets por slide (coragem).",
+  "Explicar metodologia como se fosse pra uma criança — e ela entender.",
+  "Não ser rejeitado… pelo amor… pelo REVISOR.",
+  "Responder ‘por que isso importa?’ sem dizer ‘porque sim’.",
+  "Abstract que não seja uma novela triste.",
+  "Defender o método sem pedir desculpas por existir.",
+  "Conclusão sem ‘mais estudos são necessários’ como muleta.",
+  "Saber o que é uma ANOVA sem olhar pro Google (fé).",
+  "Compreender um teste t sem entrar em negação.",
+  "Apresentar em 10 minutos o que demorou meses pra desenvolver (dom espiritual).",
+  "Método reprodutível (sem ‘fiz e deu certo’).",
+  "Passar pela banca sem ouvir ‘interessante… mas…’.",
+  "Fazer a estatística bater com a história (sem violência narrativa).",
+  "Não inventar p-valor por saudade.",
+  "Fazer o revisor elogiar UMA frase (fenômeno astronômico).",
+  "Entregar revisão em prazo humano (sem sumir da Terra).",
+  "Fazer o ‘material e métodos’ virar material e… métodos (não poesia).",
+  "Sobreviver a uma reunião sem ouvir ‘vamos alinhar’ 14 vezes."
+];
+
+function blessingLine(){
+  const lines = [
+    "🙏 Que Deus abençoe seu artigo.",
+    "⏱️ Que você apresente em 10 minutos o que demorou meses pra desenvolver.",
+    "📊 Que você saiba o que é uma ANOVA (sem entrar em negação).",
+    "📉 Que você compreenda um teste t (e não confunda com ‘tô triste’).",
+    "🧠 Que o Revisor 2 encontre paz e feche o Word.",
+    "🧪 Que seus dados sejam limpos e sua consciência também."
+  ];
+  return lines[Math.floor(Math.random()*lines.length)];
+}
+const punch = [
+  "📣 O Revisor 2 já está digitando…",
+  "🧯 Se der ruim, chama de ‘estudo exploratório’.",
+  "🧿 Proteção contra rejeição: citar 32 papers na introdução.",
+  "🧠 Café não substitui método (mas ajuda).",
+  "🧪 Se ninguém entender, diga: ‘é um framework’."
+];
+
+/* ---------------------------
+   CANVAS: roda com gomos SEM TEXTO (segredo)
+--------------------------- */
+const wheel = document.getElementById('wheel');
+const ctx = wheel.getContext('2d');
+
+let angle = Math.random()*Math.PI*2;
+let angVel = 0;
+let spinning = false;
+let stopRequested = false;
+
+// roleta usa tasks.length gomos (mesmo sem mostrar)
+function drawWheel(){
+  const W = wheel.width, H = wheel.height;
+  const cx = W/2, cy = H/2;
+  ctx.clearRect(0,0,W,H);
+
+  const n = Math.max(2, tasks.length);
+  const step = (Math.PI*2)/n;
+
+  ctx.save();
+  ctx.translate(cx,cy);
+  ctx.rotate(angle);
+
+  for(let i=0;i<n;i++){
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.arc(0,0, cx-18, i*step, (i+1)*step);
+    ctx.closePath();
+
+    const hue = (i*360/n);
+    ctx.fillStyle = `hsl(${hue} 70% 45% / 0.96)`;
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(0,0,0,.35)";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // “segredo”: só um detalhe visual, sem texto
+    ctx.save();
+    ctx.rotate(i*step + step/2);
+    ctx.beginPath();
+    ctx.arc(cx*0.62, 0, 6, 0, Math.PI*2);
+    ctx.fillStyle = "rgba(255,255,255,.22)";
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // anel externo e miolo
+  ctx.beginPath();
+  ctx.arc(0,0, cx-18, 0, Math.PI*2);
+  ctx.strokeStyle = "rgba(255,255,255,.18)";
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0,0, 70, 0, Math.PI*2);
+  ctx.fillStyle = "rgba(0,0,0,.35)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,.22)";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  ctx.restore();
+}
+drawWheel();
+
+/* ---------------------------
+   MAPEAR índice da tarefa (ponteiro em cima)
+--------------------------- */
+function pickTaskIndex(){
+  const n = tasks.length;
+  const step = (Math.PI*2)/n;
+  let a = (-Math.PI/2 - angle) % (Math.PI*2);
+  if(a<0) a += Math.PI*2;
+  const idx = Math.floor(a/step);
+  return Math.max(0, Math.min(n-1, idx));
+}
+
+/* ---------------------------
+   FOGOS (sem escurecer tela)
+--------------------------- */
+const fx = document.getElementById('fx');
+const fctx = fx.getContext('2d');
+let particles = [];
+
+function spawnFireworks(){
+  const W = fx.width, H = fx.height;
+  const bursts = 7 + Math.floor(Math.random()*4);
+  for(let b=0;b<bursts;b++){
+    const x = W*(0.25 + Math.random()*0.5);
+    const y = H*(0.16 + Math.random()*0.35);
+    const count = 70 + Math.floor(Math.random()*70);
+    for(let i=0;i<count;i++){
+      const t = Math.random()*Math.PI*2;
+      const sp = 2 + Math.random()*6.5;
+      particles.push({
+        x,y, vx: Math.cos(t)*sp, vy: Math.sin(t)*sp,
+        life: 50 + Math.random()*45,
+        r: 1.6 + Math.random()*2.4,
+        hue: Math.floor(Math.random()*360)
+      });
+    }
+  }
+}
+function updateFX(){
+  fctx.clearRect(0,0,fx.width,fx.height);
+  for(const p of particles){
+    p.life -= 1;
+    p.vy += 0.05;
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.985; p.vy *= 0.985;
+
+    fctx.beginPath();
+    fctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    fctx.fillStyle = `hsl(${p.hue} 90% 60% / ${Math.max(0,p.life/95)})`;
+    fctx.fill();
+  }
+  particles = particles.filter(p=>p.life>0);
+}
+
+/* ---------------------------
+   SOM (tic-tic com intensidade + final)
+--------------------------- */
+let audioCtx = null;
+let soundOn = false;
+const statusPill = document.getElementById('statusPill');
+
+function ensureAudio(){
+  if(audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function setStatus(){
+  statusPill.textContent = soundOn ? "🔈 som: ligado" : "🔇 som: desligado";
+}
+setStatus();
+
+function playTick(intensity=0.5){
+  if(!soundOn) return;
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = "square";
+  osc.frequency.setValueAtTime(650 + intensity*950, t);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.06 + intensity*0.14, t+0.003);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t+0.05);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t);
+  osc.stop(t+0.055);
+}
+function playWin(){
+  if(!soundOn) return;
+  ensureAudio();
+  const t = audioCtx.currentTime;
+  const freqs = [523, 659, 784, 1046];
+  freqs.forEach((f,i)=>{
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(f, t + i*0.06);
+    gain.gain.setValueAtTime(0.0001, t + i*0.06);
+    gain.gain.exponentialRampToValueAtTime(0.18, t + i*0.06 + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + i*0.06 + 0.11);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t + i*0.06);
+    osc.stop(t + i*0.06 + 0.13);
+  });
+}
+
+/* ---------------------------
+   RESULTADO + COPIAR
+--------------------------- */
+const outName = document.getElementById('outName');
+const outTask = document.getElementById('outTask');
+const outHint = document.getElementById('outHint');
+const copyBtn = document.getElementById('copyBtn');
+const copyBox = document.getElementById('copyBox');
+const copyStatus = document.getElementById('copyStatus');
+const nameInput = document.getElementById('nameInput');
+const suspenseWord = document.getElementById('suspenseWord');
+
+let lastResultText = "—";
+
+function cleanFirstName(s){
+  return (s||"").trim().split(/\s+/)[0] || "";
+}
+
+const suspensePhrases = [
+  "🕯️ Consultando os oráculos do Revisor 2…",
+  "🌀 Girando o destino acadêmico…",
+  "🧿 Proteção espiritual ativada… talvez.",
+  "🧪 Misturando café com metodologia…",
+  "📉 Ajustando o p-valor na força do ódio…",
+  "🧠 Carregando coragem pra ANOVA…"
+];
+
+function announceResult(){
+  const who = cleanFirstName(nameInput.value) || "Alguém (sem nome, sem dó)";
+  const task = tasks[pickTaskIndex()];
+  outName.textContent = `👤 Nome: ${who}`;
+  outTask.textContent = `🎯 Missão: ${task}`;
+  outHint.textContent = punch[Math.floor(Math.random()*punch.length)];
+
+  const msg =
+`🎡 Roleta de Tarefas Insanas
+👤 ${who}
+🎯 Missão: ${task}
+
+${blessingLine()}
+
+#LabEdition #Revisor2`;
+  lastResultText = msg;
+  copyBox.textContent = msg;
+  copyStatus.textContent = "pronto";
+  suspenseWord.textContent = "✅ Sentença entregue. Boa sorte.";
+}
+
+copyBtn.onclick = async ()=>{
+  try{
+    await navigator.clipboard.writeText(lastResultText);
+    copyStatus.textContent = "✅ copiado!";
+  }catch(e){
+    const ta = document.createElement("textarea");
+    ta.value = lastResultText;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+    copyStatus.textContent = "✅ copiado!";
+  }
+};
+
+/* ---------------------------
+   GIRO LONGO + SUSPENSE
+--------------------------- */
+let lastTime = performance.now();
+let lastTickAt = 0;
+let suspenseTimer = 0;
+
+function loop(now){
+  const dt = Math.min(0.03, (now-lastTime)/1000);
+  lastTime = now;
+
+  if(spinning){
+    // fricção normal (lenta pra durar bastante)
+    angVel *= Math.pow(0.975, dt*60);
+    // se pedir encurtar, aumenta fricção
+    if(stopRequested) angVel *= Math.pow(0.93, dt*60);
+
+    angle += angVel * dt;
+    angle %= (Math.PI*2);
+
+    // suspense text alternando
+    suspenseTimer += dt;
+    if(suspenseTimer > 0.55){
+      suspenseTimer = 0;
+      suspenseWord.textContent = suspensePhrases[Math.floor(Math.random()*suspensePhrases.length)];
+    }
+
+    // tick interval baseado na velocidade
+    const speed = Math.abs(angVel);
+    const interval = Math.max(0.03, Math.min(0.22, 0.02 + (0.40/(speed+0.5))));
+    if((now - lastTickAt)/1000 >= interval){
+      lastTickAt = now;
+      playTick(Math.max(0.05, Math.min(1, speed/9)));
+    }
+
+    // condição de parada (bem baixa pra “dar suspense” no final)
+    if(speed < 0.10){
+      spinning = false;
+      angVel = 0;
+      stopRequested = false;
+      announceResult();
+      playWin();
+      if(document.getElementById("fireToggle").checked) spawnFireworks();
+    }
+  }
+
+  drawWheel();
+  updateFX();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+function startSpin(mult){
+  const who = cleanFirstName(nameInput.value);
+  if(!who){
+    suspenseWord.textContent = "⚠️ Digita seu nome primeiro, campeão.";
+    return;
+  }
+  spinning = true;
+  stopRequested = false;
+  copyStatus.textContent = "girando…";
+  copyBox.textContent = "—";
+  outName.textContent = "👤 Nome: (girando…)";
+  outTask.textContent = "🎯 Missão: (segredo…)";
+  outHint.textContent = "Shhh… ninguém pode saber o que tem nos gomos.";
+  suspenseWord.textContent = suspensePhrases[Math.floor(Math.random()*suspensePhrases.length)];
+  suspenseTimer = 0;
+
+  // VELOCIDADE ALTA + RANDOM: gira MUITO
+  // (mult 1 = muito; mult 1.35 = insano)
+  angVel = (10.5 + Math.random()*6.5) * mult; // rad/s
+}
+
+document.getElementById("spinBtn").onclick = ()=>startSpin(1.0);
+document.getElementById("spinInsaneBtn").onclick = ()=>startSpin(1.35);
+document.getElementById("stopBtn").onclick = ()=>{ if(spinning) stopRequested = true; };
+
+/* ---------------------------
+   SOM toggle
+--------------------------- */
+document.getElementById("soundToggle").onchange = (e)=>{
+  soundOn = e.target.checked;
+  setStatus();
+  if(soundOn){
+    ensureAudio();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+  }
+};
+window.addEventListener("pointerdown", ()=>{
+  if(soundOn){
+    ensureAudio();
+    if(audioCtx.state === "suspended") audioCtx.resume();
+  }
+}, {once:false});
+</script>
+</body>
+</html>
